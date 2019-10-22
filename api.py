@@ -5,7 +5,14 @@ from dataclasses import dataclass
 @dataclass
 class Story:
     # Dataclass for handling individual stories
-    pass
+
+    def set_from_url(self, url):
+        # Takes in relative url string and sets id and name
+        raise NotImplementedError("Abstract method")
+
+    def generate_url(self):
+        # Returns relative url string for story
+        raise NotImplementedError("Abstract method")
 
 
 @dataclass
@@ -20,6 +27,10 @@ class API:
         self.host = host
 
     # Query methods
+
+    def get_categories(self):
+        # Retrieves and constructs dictionary of categories with labels
+        raise NotImplementedError("Abstract method for specific APIs")
 
     def print_query(self, query: Query):
         # Pretty printing of a Query dataclass with human-readable string values

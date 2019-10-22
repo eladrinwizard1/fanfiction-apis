@@ -1,10 +1,38 @@
 # Custom-built fanfiction.net API
+import requests
+from bs4 import BeautifulSoup
+
 from api import API, Query, Story
 
 
 class FFNStory(Story):
     # Class for FFN story data.
+
+    # Identifying properties
+    id: int = 0
+    name: str = ""
+
+    # Search parameter properties
+    rating: int = 0
+    language: int = 0
+    genre_1: int = 0
+    genre_2: int = 0
+
+    # Other properties
+    chapter_count: int = 0
+    word_count: int = 0
+    review_count: int = 0
+    update_time: int = 0
+    publication_time: int = 0
     pass
+
+    def set_from_url(self, url):
+        # Takes in relative url string and sets id and name
+        (self.id, self.name) = url.split('/')[2:4]
+
+    def generate_url(self):
+        # Returns relative url string for story
+        return f"/s/{self.id}/{self.name}"
 
 
 class FFNQuery(Query):
@@ -43,6 +71,10 @@ class FFN(API):
 
     # Query methods
 
+    def get_categories(self):
+        # Retrieves and constructs dictionary of categories with labels
+        pass
+
     def print_query(self, query: Query):
         # Pretty printing of a Query dataclass with human-readable string values
         pass
@@ -72,7 +104,10 @@ class FFN(API):
                """
 
     def search(self, query: Query):
-        # Returns a list of Story objects that are results from the query
+        # Returns a list of Story objects with only urls that are results from the query
+        src = requests.get(self.host + self._generate_query_string(query))
+        soup = BeautifulSoup(src.content, 'html.parser')
+        story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
         pass
 
     # Story methods
