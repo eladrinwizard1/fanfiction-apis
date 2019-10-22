@@ -83,18 +83,18 @@ class FFN(API):
         # Generates the URL string for the search query. Internal method for use in search
         return """?
                   &srt={query.sort}\
+                  &t={query.time}\
                   &g1={query.genre_1}\
                   &g2={query.genre_2}\
-                  &lan={query.language}\
                   &r={query.rating}\
+                  &lan={query.language}\
                   &len={query.length}\
-                  &t={query.time}\
                   &s={query.status}\
+                  &v1={query.world}\
                   &c1={query.char_1}\
                   &c2={query.char_2}\
                   &c3={query.char_3}\
                   &c4={query.char_4}\
-                  &v1={query.world}\
                   &pm={query.pairing}\
                   &_g1={query.no_genre_1}\
                   &_c1={query.no_char_1}\
@@ -108,7 +108,12 @@ class FFN(API):
         src = requests.get(self.host + self._generate_query_string(query))
         soup = BeautifulSoup(src.content, 'html.parser')
         story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
-        pass
+        stories = []
+        for url in story_urls:
+            story = FFNStory()
+            story.set_from_url(url)
+            stories.append(story)
+        return stories
 
     # Story methods
 
