@@ -84,11 +84,11 @@ class FFN(API):
         super().__init__(f"https://www.fanfiction.net/{category}/{source}/")
         # TODO: Convert source string into hyphenated string (helper fn in separate or same lib?)
 
-    # Query methods
-
-    def get_categories(self):
+    def _set_categories(self):
         # Retrieves and constructs dictionary of categories with labels
         pass
+
+    # Query methods
 
     def print_query(self, query: Query):
         # Pretty printing of a Query dataclass with human-readable string values

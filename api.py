@@ -37,7 +37,7 @@ class API:
 
     # Query methods
 
-    def get_categories(self):
+    def _set_categories(self):
         # Retrieves and constructs dictionary of categories with labels
         raise NotImplementedError("Abstract method for specific APIs")
 
