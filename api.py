@@ -3,6 +3,15 @@ from dataclasses import dataclass
 
 
 @dataclass
+class User:
+    # Dataclass for handling users
+
+    def get_stories(self):
+        # Returns a list of stories written by the user
+        raise NotImplementedError("Abstract method")
+
+
+@dataclass
 class Story:
     # Dataclass for handling individual stories
 

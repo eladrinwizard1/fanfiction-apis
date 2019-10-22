@@ -1,10 +1,24 @@
 # Custom-built fanfiction.net API
+from dataclasses import dataclass
+
 import requests
 from bs4 import BeautifulSoup
 
-from api import API, Query, Story
+from api import API, Query, Story, User
 
 
+@dataclass
+class FFNUser(User):
+    # Class for FFN user data.
+    id: int = 0
+    username: str = ""
+
+    def get_stories(self):
+        # Returns a list of stories written by the user
+        pass
+
+
+@dataclass
 class FFNStory(Story):
     # Class for FFN story data.
 
@@ -19,22 +33,24 @@ class FFNStory(Story):
     genre_2: int = 0
 
     # Other properties
+    title: str = ""  # Note: this is the actual title, not the url-formatted title
+    author: FFNUser = None
     chapter_count: int = 0
     word_count: int = 0
     review_count: int = 0
     update_time: int = 0
     publication_time: int = 0
-    pass
 
     def set_from_url(self, url):
         # Takes in relative url string and sets id and name
-        (self.id, self.name) = url.split('/')[2:4]
+        (self.id, _, self.name) = url.split('/')[2:5]
 
     def generate_url(self):
         # Returns relative url string for story
-        return f"/s/{self.id}/{self.name}"
+        return f"/s/{self.id}/1/{self.name}"
 
 
+@dataclass
 class FFNQuery(Query):
     # Class for a set of FFN search parameters. Data is stored as ints and converted to strings for human readability
 
@@ -66,7 +82,6 @@ class FFN(API):
 
     def __init__(self, category: str, source: str):
         super().__init__(f"https://www.fanfiction.net/{category}/{source}/")
-        # TODO: Iterate over types of fanfiction source and find source
         # TODO: Convert source string into hyphenated string (helper fn in separate or same lib?)
 
     # Query methods
@@ -105,6 +120,7 @@ class FFN(API):
 
     def search(self, query: Query):
         # Returns a list of Story objects with only urls that are results from the query
+        # TODO: Currently returns first 25 results (first page). Decide if more needed and return more if needed
         src = requests.get(self.host + self._generate_query_string(query))
         soup = BeautifulSoup(src.content, 'html.parser')
         story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
