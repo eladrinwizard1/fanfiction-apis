@@ -1,4 +1,5 @@
 # Custom-built fanfiction.net API
+import re
 from dataclasses import dataclass
 from typing import List
 
@@ -117,21 +118,28 @@ class FFN(API):
 
     def search(self, query: FFNQuery, pages: int = 1) -> List[FFNStory]:
         # Returns a list of Story objects with only urls that are results from the query
-        # TODO: implement use of pages variable to return multiple pages of results
+        # Note that a page by default has 25 stories
         stories = []
-        src = requests.get(self.host + self._generate_query_string(query))
-        soup = BeautifulSoup(src.content, 'html.parser')
-        story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
-        for url in story_urls:
-            story = FFNStory()
-            story.set_from_url(url)
-            stories.append(story)
+        for i in range(1, pages + 1):
+            src = requests.get(self.host + self._generate_query_string(query) + "&p={i}")
+            soup = BeautifulSoup(src.content, 'html.parser')
+            story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
+            if len(story_urls) == 0:
+                break
+            for url in story_urls:
+                story = FFNStory()
+                story.set_from_url(url)
+                stories.append(story)
         return stories
 
     # Story methods
 
     def get_story_data(self, story: FFNStory) -> None:
         # Adds story metadata to a story
+        src = requests.get(self.host + story.generate_url())
+        soup = BeautifulSoup(src.content, 'html.parser')
+        metadata_elt = soup.find(string=re.compile("Favs")).parent
+        # TODO: process metadata_elt
         pass
 
     def get_chapter_data(self, story: FFNStory) -> None:
