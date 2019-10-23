@@ -1,3 +1,4 @@
+# TODO: Fix this after finishing ffn.py
 # Abstract API class
 from dataclasses import dataclass
 
@@ -5,10 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class User:
     # Dataclass for handling users
-
-    def get_stories(self):
-        # Returns a list of stories written by the user
-        raise NotImplementedError("Abstract method")
+    pass
 
 
 @dataclass
@@ -66,3 +64,9 @@ class API:
     def download_chapters(self, story: Story):
         # Downloads chapters of a story to disk
         raise NotImplementedError("Abstract method for specific APIs")
+
+    # User methods
+
+    def get_stories(self, user: User):
+        # Gets stories from a particular author
+        pass

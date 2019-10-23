@@ -1,5 +1,6 @@
 # Custom-built fanfiction.net API
 from dataclasses import dataclass
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,10 +13,6 @@ class FFNUser(User):
     # Class for FFN user data.
     id: int = 0
     username: str = ""
-
-    def get_stories(self):
-        # Returns a list of stories written by the user
-        pass
 
 
 @dataclass
@@ -41,11 +38,11 @@ class FFNStory(Story):
     update_time: int = 0
     publication_time: int = 0
 
-    def set_from_url(self, url):
+    def set_from_url(self, url) -> None:
         # Takes in relative url string and sets id and name
         (self.id, _, self.name) = url.split('/')[2:5]
 
-    def generate_url(self):
+    def generate_url(self) -> str:
         # Returns relative url string for story
         return f"/s/{self.id}/1/{self.name}"
 
@@ -84,17 +81,17 @@ class FFN(API):
         super().__init__(f"https://www.fanfiction.net/{category}/{source}/")
         # TODO: Convert source string into hyphenated string (helper fn in separate or same lib?)
 
-    def _set_categories(self):
+    def _set_categories(self) -> None:
         # Retrieves and constructs dictionary of categories with labels
         pass
 
     # Query methods
 
-    def print_query(self, query: Query):
+    def print_query(self, query: FFNQuery) -> None:
         # Pretty printing of a Query dataclass with human-readable string values
         pass
 
-    def _generate_query_string(self, query: Query):
+    def _generate_query_string(self, query: FFNQuery) -> str:
         # Generates the URL string for the search query. Internal method for use in search
         return """?
                   &srt={query.sort}\
@@ -118,13 +115,13 @@ class FFN(API):
                   &_pm={query.no_pairing}
                """
 
-    def search(self, query: Query):
+    def search(self, query: FFNQuery, pages: int = 1) -> List[FFNStory]:
         # Returns a list of Story objects with only urls that are results from the query
-        # TODO: Currently returns first 25 results (first page). Decide if more needed and return more if needed
+        # TODO: implement use of pages variable to return multiple pages of results
+        stories = []
         src = requests.get(self.host + self._generate_query_string(query))
         soup = BeautifulSoup(src.content, 'html.parser')
         story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
-        stories = []
         for url in story_urls:
             story = FFNStory()
             story.set_from_url(url)
@@ -133,14 +130,20 @@ class FFN(API):
 
     # Story methods
 
-    def get_story_data(self, story: Story):
+    def get_story_data(self, story: FFNStory) -> None:
         # Adds story metadata to a story
         pass
 
-    def get_chapter_data(self, story: Story):
+    def get_chapter_data(self, story: FFNStory) -> None:
         # Adds chapter metadata to a story
         pass
 
-    def download_chapters(self, story: Story):
+    def download_chapters(self, story: FFNStory) -> None:
         # Downloads chapters of a story to disk
+        pass
+
+    # User methods
+
+    def get_stories(self, user: FFNUser) -> List[FFNStory]:
+        # Gets stories from a particular author
         pass
