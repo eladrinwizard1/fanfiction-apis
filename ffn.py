@@ -140,8 +140,16 @@ class FFN(API):
 
     # Story methods
 
+    def _make_story_folder(self, story: FFNStory) -> str:
+        # Creates directory for storing story information
+        abs_path = self.path + f"/{story.name}/"
+        if not os.path.exists(abs_path):
+            os.makedirs(abs_path)
+        return abs_path
+
     def get_story_data(self, story: FFNStory) -> None:
-        # Adds story metadata to a story
+        # Adds story metadata to a story object and saves output to txt file
+        abs_path = self._make_story_folder(story)
         src = requests.get(story.generate_url(), headers=self.headers)
         soup = BeautifulSoup(src.content, 'html.parser')
         metadata_elt = soup.find("a",
@@ -168,9 +176,7 @@ class FFN(API):
     # TODO: Add print statements because of slow speed
     def get_chapter_data(self, story: FFNStory) -> None:
         # Downloads chapters of a story
-        abs_path = self.path + f"/{story.name}/"
-        if not os.path.exists(abs_path):
-            os.makedirs(abs_path)
+        abs_path = self._make_story_folder(story)
         for i in range(story.chapter_count):
             with open(f"{abs_path}chapter-{i}.txt", "w+", encoding="utf8") as f:
                 src = requests.get(story.generate_url(i),
