@@ -1,5 +1,5 @@
 # Custom-built fanfiction.net API
-import re
+import os
 from dataclasses import dataclass
 from typing import List
 
@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from api import API, Query, Story, User
+from lib.string_lib import num_from_meta
 
 
 @dataclass
@@ -31,11 +32,13 @@ class FFNStory(Story):
     genre_2: int = 0
 
     # Other properties
-    title: str = ""  # Note: this is the actual title, not the url-formatted title
+    title: str = ""  # This is the actual title, not the url-formatted title
     author: FFNUser = None
     chapter_count: int = 0
     word_count: int = 0
     review_count: int = 0
+    favorites_count: int = 0
+    follows_count: int = 0
     update_time: int = 0
     publication_time: int = 0
 
@@ -43,14 +46,15 @@ class FFNStory(Story):
         # Takes in relative url string and sets id and name
         (self.id, _, self.name) = url.split('/')[2:5]
 
-    def generate_url(self) -> str:
+    def generate_url(self, chapter: int = 1) -> str:
         # Returns relative url string for story
-        return f"/s/{self.id}/1/{self.name}"
+        return f"https://www.fanfiction.net/s/{self.id}/{chapter}"
 
 
 @dataclass
 class FFNQuery(Query):
-    # Class for a set of FFN search parameters. Data is stored as ints and converted to strings for human readability
+    # Class for a set of FFN search parameters. Data is stored as ints and
+    # converted to strings for human readability
 
     # "With" filters
     sort: int = 0
@@ -75,12 +79,36 @@ class FFNQuery(Query):
     no_world: int = 0
     no_pairing: int = 0
 
+    def generate_query_string(self) -> str:
+        # Generates URL string for search query
+        return f"?srt={self.sort}" + \
+               f"&t={self.time}" + \
+               f"&g1={self.genre_1}" + \
+               f"&g2={self.genre_2}" + \
+               f"&r={self.rating}" + \
+               f"&lan={self.language}" + \
+               f"&len={self.length}" + \
+               f"&s={self.status}" + \
+               f"&v1={self.world}" + \
+               f"&c1={self.char_1}" + \
+               f"&c2={self.char_2}" + \
+               f"&c3={self.char_3}" + \
+               f"&c4={self.char_4}" + \
+               f"&pm={self.pairing}" + \
+               f"&_g1={self.no_genre_1}" + \
+               f"&_c1={self.no_char_1}" + \
+               f"&_c2={self.no_char_2}" + \
+               f"&_v1={self.no_world}" + \
+               f"&_pm={self.no_pairing}"
+
 
 class FFN(API):
 
-    def __init__(self, category: str, source: str):
-        super().__init__(f"https://www.fanfiction.net/{category}/{source}/")
-        # TODO: Convert source string into hyphenated string (helper fn in separate or same lib?)
+    def __init__(self, category: str, source: str, path: str):
+        super().__init__(f"https://www.fanfiction.net/{category}/{source}/",
+                         path)
+        # TODO: Convert source string into hyphenated string
+        #  (helper fn in separate or same lib?)
 
     def _set_categories(self) -> None:
         # Retrieves and constructs dictionary of categories with labels
@@ -92,38 +120,16 @@ class FFN(API):
         # Pretty printing of a Query dataclass with human-readable string values
         pass
 
-    def _generate_query_string(self, query: FFNQuery) -> str:
-        # Generates the URL string for the search query. Internal method for use in search
-        return """?
-                  &srt={query.sort}\
-                  &t={query.time}\
-                  &g1={query.genre_1}\
-                  &g2={query.genre_2}\
-                  &r={query.rating}\
-                  &lan={query.language}\
-                  &len={query.length}\
-                  &s={query.status}\
-                  &v1={query.world}\
-                  &c1={query.char_1}\
-                  &c2={query.char_2}\
-                  &c3={query.char_3}\
-                  &c4={query.char_4}\
-                  &pm={query.pairing}\
-                  &_g1={query.no_genre_1}\
-                  &_c1={query.no_char_1}\
-                  &_c2={query.no_char_2}\
-                  &_v1={query.no_world}\
-                  &_pm={query.no_pairing}
-               """
-
     def search(self, query: FFNQuery, pages: int = 1) -> List[FFNStory]:
-        # Returns a list of Story objects with only urls that are results from the query
-        # Note that a page by default has 25 stories
+        # Returns a list of Story objects with only urls that are results from
+        # the query. Note that a page by default has 25 stories
         stories = []
         for i in range(1, pages + 1):
-            src = requests.get(self.host + self._generate_query_string(query) + "&p={i}")
+            src = requests.get(self.host + query.generate_query_string() +
+                               f"&p={i}", headers=self.headers)
             soup = BeautifulSoup(src.content, 'html.parser')
-            story_urls = [a["href"] for a in soup.find_all("a", class_="stitle")]
+            story_urls = [a["href"] for a in
+                          soup.find_all("a", class_="stitle")]
             if len(story_urls) == 0:
                 break
             for url in story_urls:
@@ -136,19 +142,42 @@ class FFN(API):
 
     def get_story_data(self, story: FFNStory) -> None:
         # Adds story metadata to a story
-        src = requests.get(self.host + story.generate_url())
+        src = requests.get(story.generate_url(), headers=self.headers)
         soup = BeautifulSoup(src.content, 'html.parser')
-        metadata_elt = soup.find(string=re.compile("Favs")).parent
-        # TODO: process metadata_elt
-        pass
+        metadata_elt = soup.find("a",
+                                 href="https://www.fictionratings.com/").parent
+        raw_text_array = metadata_elt.text.split(" - ")
 
+        # TODO: Fix case where no reviews
+        story.chapter_count = num_from_meta(raw_text_array, "Chapters")
+        story.word_count = num_from_meta(raw_text_array, "Words")
+        story.review_count = num_from_meta(raw_text_array, "Reviews")
+        story.favorites_count = num_from_meta(raw_text_array, "Favs")
+        story.follows_count = num_from_meta(raw_text_array, "Follows")
+        story.title = story.name.replace("-", " ")  # TODO: Make less hackish
+
+        # TODO: Finish processing these parameters
+        story.rating = 0
+        story.language = 0
+        story.genre_1 = 0
+        story.genre_2 = 0
+        story.author = None
+        story.update_time = 0
+        story.publication_time = 0
+
+    # TODO: Add print statements because of slow speed
     def get_chapter_data(self, story: FFNStory) -> None:
-        # Adds chapter metadata to a story
-        pass
-
-    def download_chapters(self, story: FFNStory) -> None:
-        # Downloads chapters of a story to disk
-        pass
+        # Downloads chapters of a story
+        abs_path = self.path + f"/{story.name}/"
+        if not os.path.exists(abs_path):
+            os.makedirs(abs_path)
+        for i in range(story.chapter_count):
+            with open(f"{abs_path}chapter-{i}.txt", "w+", encoding="utf8") as f:
+                src = requests.get(story.generate_url(i),
+                                   headers=self.headers)
+                soup = BeautifulSoup(src.content, 'html.parser')
+                story_text = soup.find("div", id="storytext").get_text()
+                f.write(story_text)
 
     # User methods
 
