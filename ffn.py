@@ -176,8 +176,9 @@ class FFN(API):
                 src = requests.get(story.generate_url(i),
                                    headers=self.headers)
                 soup = BeautifulSoup(src.content, 'html.parser')
-                story_text = soup.find("div", id="storytext").get_text()
-                f.write(story_text)
+                p_arr = soup.find("div", id="storytext").find_all("p")
+                for p in p_arr:
+                    f.write(f"{p.get_text()}\n")
 
     # User methods
 
