@@ -105,14 +105,28 @@ class FFNQuery(Query):
 class FFN(API):
 
     def __init__(self, category: str, source: str, path: str):
+        source = source.replace(" ", "-")
         super().__init__(f"https://www.fanfiction.net/{category}/{source}/",
                          path)
-        # TODO: Convert source string into hyphenated string
-        #  (helper fn in separate or same lib?)
+        self._set_categories()
 
     def _set_categories(self) -> None:
         # Retrieves and constructs dictionary of categories with labels
-        pass
+        categories = {}
+        src = requests.get(self.host)
+        soup = BeautifulSoup(src.content, 'lxml')
+        selectors = soup.find(id="myform").find_all("select")
+        labels = ["sort", "time", "genre_1", "genre_2", "rating", "language",
+                  "length", "status", "world", "char_1", "char_2", "char_3",
+                  "char_4", "no_genre_1", "no_char_1", "no_char_2", "no_world"]
+        for selector, label in zip(selectors, labels):
+            categories[label] = {}
+            for opt in selector.find_all("option"):
+                categories[label][str(opt["value"])] = opt.string
+        pairings = {"0": "False", "1": "True"}
+        categories["pairing"] = pairings
+        categories["no_pairing"] = pairings
+        self.categories = categories
 
     # Query methods
 
@@ -127,7 +141,7 @@ class FFN(API):
         for i in range(1, pages + 1):
             src = requests.get(self.host + query.generate_query_string() +
                                f"&p={i}", headers=self.headers)
-            soup = BeautifulSoup(src.content, 'html.parser')
+            soup = BeautifulSoup(src.content, 'lxml')
             story_urls = [a["href"] for a in
                           soup.find_all("a", class_="stitle")]
             if len(story_urls) == 0:
@@ -151,7 +165,7 @@ class FFN(API):
         # Adds story metadata to a story object and saves output to txt file
         abs_path = self._make_story_folder(story)
         src = requests.get(story.generate_url(), headers=self.headers)
-        soup = BeautifulSoup(src.content, 'html.parser')
+        soup = BeautifulSoup(src.content, 'lxml')
         metadata_elt = soup.find("a",
                                  href="https://www.fictionratings.com/").parent
         raw_text_array = metadata_elt.text.split(" - ")
@@ -181,7 +195,7 @@ class FFN(API):
             with open(f"{abs_path}chapter-{i}.txt", "w+", encoding="utf8") as f:
                 src = requests.get(story.generate_url(i),
                                    headers=self.headers)
-                soup = BeautifulSoup(src.content, 'html.parser')
+                soup = BeautifulSoup(src.content, 'lxml')
                 p_arr = soup.find("div", id="storytext").find_all("p")
                 for p in p_arr:
                     f.write(f"{p.get_text()}\n")

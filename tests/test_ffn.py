@@ -7,6 +7,10 @@ import ffn
 PATH = "C:/Users/vijay/Documents/hp_data"
 
 
+def test_init():
+    api = ffn.FFN("book", "Harry Potter", PATH)
+
+
 def test_search():
     api = ffn.FFN("book", "Harry-Potter", PATH)
     query = ffn.FFNQuery(sort=4)
@@ -29,4 +33,4 @@ def test_get_chapter_data():
     api.get_chapter_data(story)
 
 
-test_get_chapter_data()
+test_init()
