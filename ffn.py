@@ -1,5 +1,7 @@
 # Custom-built fanfiction.net API
+import concurrent.futures
 import os
+import threading
 from dataclasses import dataclass
 from typing import List
 
@@ -187,18 +189,32 @@ class FFN(API):
         story.update_time = 0
         story.publication_time = 0
 
-    # TODO: Add print statements because of slow speed
+    # TODO: test threading and learn how it works
     def get_chapter_data(self, story: FFNStory) -> None:
         # Downloads chapters of a story
-        abs_path = self._make_story_folder(story)
-        for i in range(story.chapter_count):
+        thread_local = threading.local()
+
+        def get_session():
+            if not hasattr(thread_local, "session"):
+                thread_local.session = requests.Session()
+            return thread_local.session
+
+        def download_chapter(url_tuple):
+            url, i = url_tuple
+            session = get_session()
+            with session.get(url) as src:
+                src = session.get(url, headers=self.headers)
+            soup = BeautifulSoup(src.content, 'lxml')
+            p_arr = soup.find("div", id="storytext").find_all("p")
             with open(f"{abs_path}chapter-{i}.txt", "w+", encoding="utf8") as f:
-                src = requests.get(story.generate_url(i),
-                                   headers=self.headers)
-                soup = BeautifulSoup(src.content, 'lxml')
-                p_arr = soup.find("div", id="storytext").find_all("p")
                 for p in p_arr:
                     f.write(f"{p.get_text()}\n")
+
+        abs_path = self._make_story_folder(story)
+        urls = [(story.generate_url(i), i) for i in range(story.chapter_count)]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            executor.map(download_chapter, urls)
 
     # User methods
 

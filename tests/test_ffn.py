@@ -33,4 +33,4 @@ def test_get_chapter_data():
     api.get_chapter_data(story)
 
 
-test_init()
+test_get_chapter_data()
