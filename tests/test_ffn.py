@@ -4,6 +4,7 @@ sys.path.append("..")
 
 import ffn
 
+
 PATH = "C:/Users/vijay/Documents/hp_data"
 
 
@@ -20,7 +21,7 @@ def test_search():
 
 def test_get_story_data():
     api = ffn.FFN("book", "Harry-Potter", PATH)
-    query = ffn.FFNQuery()
+    query = ffn.FFNQuery(sort=4)
     story = api.search(query, 1)[0]
     api.get_story_data(story)
 
@@ -33,4 +34,4 @@ def test_get_chapter_data():
     api.get_chapter_data(story)
 
 
-test_get_chapter_data()
+test_get_story_data()

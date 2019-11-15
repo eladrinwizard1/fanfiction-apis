@@ -3,13 +3,12 @@ import concurrent.futures
 import os
 import threading
 from dataclasses import dataclass
-from typing import List
 
 import requests
 from bs4 import BeautifulSoup
 
 from api import API, Query, Story, User
-from lib.string_lib import num_from_meta
+from lib.string_lib import *
 
 
 @dataclass
@@ -32,6 +31,11 @@ class FFNStory(Story):
     language: int = 0
     genre_1: int = 0
     genre_2: int = 0
+    char_1: int = 0
+    char_2: int = 0
+    char_3: int = 0
+    char_4: int = 0
+    status: int = 0
 
     # Other properties
     title: str = ""  # This is the actual title, not the url-formatted title
@@ -113,8 +117,11 @@ class FFN(API):
         self._set_categories()
 
     def _set_categories(self) -> None:
-        # Retrieves and constructs dictionary of categories with labels
+        # Retrieves and constructs 2 dictionaries
+        # self.categories: key option number - value option string
+        # self.reverse_categories: key option string - value option number
         categories = {}
+        reverse_categories = {}
         src = requests.get(self.host)
         soup = BeautifulSoup(src.content, 'lxml')
         selectors = soup.find(id="myform").find_all("select")
@@ -122,13 +129,19 @@ class FFN(API):
                   "length", "status", "world", "char_1", "char_2", "char_3",
                   "char_4", "no_genre_1", "no_char_1", "no_char_2", "no_world"]
         for selector, label in zip(selectors, labels):
-            categories[label] = {}
+            categories[label], reverse_categories[label] = {}, {}
             for opt in selector.find_all("option"):
                 categories[label][str(opt["value"])] = opt.string
+                reverse_categories[label][opt.string] = str(opt["value"])
+        # Manually set pairings
         pairings = {"0": "False", "1": "True"}
-        categories["pairing"] = pairings
-        categories["no_pairing"] = pairings
+        categories["pairing"], categories["no_pairing"] = pairings, pairings
+        reverse_pairings = {"False": "0", "True": "1"}
+        reverse_categories["pairing"], reverse_categories["no_pairing"] = \
+            reverse_pairings, reverse_pairings
+
         self.categories = categories
+        self.reverse_categories = reverse_categories
 
     # Query methods
 
@@ -179,17 +192,20 @@ class FFN(API):
         story.favorites_count = num_from_meta(raw_text_array, "Favs")
         story.follows_count = num_from_meta(raw_text_array, "Follows")
         story.title = story.name.replace("-", " ")  # TODO: Make less hackish
-
+        print(raw_text_array)
+        story.rating = get_int_rating(raw_text_array)
+        story.language = int(self.reverse_categories["language"]
+                             .get(raw_text_array[1], 0))
+        story.genre_1, story.genre_2 = \
+            get_genres(raw_text_array[2], self.reverse_categories["genre_1"])
+        story.char_1, story.char_2, story.char_3, story.char_4 = \
+            get_chars(raw_text_array[3], self.reverse_categories["char_1"])
         # TODO: Finish processing these parameters
-        story.rating = 0
-        story.language = 0
-        story.genre_1 = 0
-        story.genre_2 = 0
-        story.author = None
+        story.status = 0
         story.update_time = 0
         story.publication_time = 0
+        story.author = None
 
-    # TODO: test threading and learn how it works
     def get_chapter_data(self, story: FFNStory) -> None:
         # Downloads chapters of a story
         thread_local = threading.local()
