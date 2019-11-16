@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from fanfiction_apis.api import API, Query, Story, User
-from fanfiction_apis.lib.string_lib import *
+from fanfiction_apis.string_lib import *
 
 
 @dataclass
