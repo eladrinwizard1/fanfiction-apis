@@ -1,5 +1,6 @@
 # Custom-built fanfiction.net API
 import concurrent.futures
+import json
 import os
 import threading
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ class FFNUser(User):
     # Class for FFN user data.
     id: int = 0
     username: str = ""
+    title: str = ""
 
 
 @dataclass
@@ -45,8 +47,8 @@ class FFNStory(Story):
     review_count: int = 0
     favorites_count: int = 0
     follows_count: int = 0
-    update_time: int = 0
-    publication_time: int = 0
+    update_time: date = date.min
+    publication_time: date = date.min
 
     def set_from_url(self, url) -> None:
         # Takes in relative url string and sets id and name
@@ -149,11 +151,12 @@ class FFN(API):
         # Pretty printing of a Query dataclass with human-readable string values
         pass
 
-    def search(self, query: FFNQuery, pages: int = 1) -> List[FFNStory]:
+    def search(self, query: FFNQuery, pages: int = 1, skip: int = 0) \
+            -> List[FFNStory]:
         # Returns a list of Story objects with only urls that are results from
         # the query. Note that a page by default has 25 stories
         stories = []
-        for i in range(1, pages + 1):
+        for i in range(skip + 1, pages + 1):
             src = requests.get(self.host + query.generate_query_string() +
                                f"&p={i}", headers=self.headers)
             soup = BeautifulSoup(src.content, 'lxml')
@@ -192,7 +195,6 @@ class FFN(API):
         story.favorites_count = num_from_meta(raw_text_array, "Favs")
         story.follows_count = num_from_meta(raw_text_array, "Follows")
         story.title = story.name.replace("-", " ")  # TODO: Make less hackish
-        print(raw_text_array)
         story.rating = get_int_rating(raw_text_array)
         story.language = int(self.reverse_categories["language"]
                              .get(raw_text_array[1], 0))
@@ -200,11 +202,20 @@ class FFN(API):
             get_genres(raw_text_array[2], self.reverse_categories["genre_1"])
         story.char_1, story.char_2, story.char_3, story.char_4 = \
             get_chars(raw_text_array[3], self.reverse_categories["char_1"])
-        # TODO: Finish processing these parameters
-        story.status = 0
-        story.update_time = 0
-        story.publication_time = 0
-        story.author = None
+        story.status = 2 if "Complete" in \
+                            str_from_meta(raw_text_array, "Status") else 1
+        story.update_time = date_from_meta(raw_text_array, "Updated")
+        story.publication_time = date_from_meta(raw_text_array, "Published")
+        src = requests.get(story.generate_url(), headers=self.headers)
+        soup = BeautifulSoup(src.content, 'lxml')
+        author_data = soup.find(text="By:").parent.parent \
+            .find("a")['href'].split("/")
+        story.author = FFNUser(id=int(author_data[2]),
+                               username=author_data[3],
+                               title=author_data[3].replace("-", " "))
+        # Save to json file
+        with open(f"{abs_path}metadata.json", "w+", encoding="utf8") as f:
+            json.dump(story, f, default=encode_story)
 
     def get_chapter_data(self, story: FFNStory) -> None:
         # Downloads chapters of a story

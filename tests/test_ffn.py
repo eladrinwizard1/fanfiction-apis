@@ -28,7 +28,7 @@ def test_get_story_data():
 
 def test_get_chapter_data():
     api = ffn.FFN("book", "Harry-Potter", PATH)
-    query = ffn.FFNQuery(sort=4)
+    query = ffn.FFNQuery(sort=4, rating=10)
     story = api.search(query, 1)[0]
     api.get_story_data(story)
     api.get_chapter_data(story)
