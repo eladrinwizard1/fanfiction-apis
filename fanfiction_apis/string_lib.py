@@ -5,7 +5,7 @@ from typing import List, Tuple, Dict
 
 def num_from_meta(meta_tags: List[str], label: str) -> int:
     matches = [x for x in meta_tags if label in x]
-    return "" if len(matches) == 0 \
+    return 0 if len(matches) == 0 \
         else int(matches[0].split(": ")[1].replace(',', ''))
 
 
@@ -15,9 +15,14 @@ def str_from_meta(meta_tags: List[str], label: str) -> str:
 
 
 def date_from_meta(meta_tags: List[str], label: str) -> date:
-    tag_array = str_from_meta(meta_tags, label).split(": ")[1].split("/")
-    return date.today() if len(tag_array) == 1 \
-        else date(int(tag_array[2]), int(tag_array[0]), int(tag_array[1]))
+    tag_arr = str_from_meta(meta_tags, label).split(": ")
+    try:
+        return date.strptime(tag_arr[1], "%m/%d/%Y")
+    except:
+        try:
+            return date.strptime(tag_arr[1], "%b %d, %Y")
+        except:
+            return date.today()
 
 
 def get_int_rating(meta_tags: List[str]) -> int:

@@ -188,9 +188,7 @@ class FFN(API):
         metadata_elt = soup.find("a",
                                  href="https://www.fictionratings.com/").parent
         raw_text_array = metadata_elt.text.split(" - ")
-
-        # TODO: Fix case where no reviews
-        story.chapter_count = num_from_meta(raw_text_array, "Chapters")
+        story.chapter_count = max(num_from_meta(raw_text_array, "Chapters"), 1)
         story.word_count = num_from_meta(raw_text_array, "Words")
         story.review_count = num_from_meta(raw_text_array, "Reviews")
         story.favorites_count = num_from_meta(raw_text_array, "Favs")

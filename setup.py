@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="fanfiction-apis-eladrinwizard1",  # Replace with your own username
-    version="0.1.1",
+    version="0.1.3",
     author="Abhishek Vijayakumar",
     author_email="vijayakumar.abhishek@gmail.com",
     description="A package for scraping stories from fanfiction websites",
