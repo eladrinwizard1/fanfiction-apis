@@ -2,8 +2,7 @@
 import sys
 sys.path.append("..")
 
-import ffn
-
+from fanfiction_apis import ffn
 
 PATH = "C:/Users/vijay/Documents/hp_data"
 
@@ -34,4 +33,4 @@ def test_get_chapter_data():
     api.get_chapter_data(story)
 
 
-test_get_story_data()
+test_search()

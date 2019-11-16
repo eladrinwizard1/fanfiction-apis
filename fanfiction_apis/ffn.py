@@ -3,13 +3,14 @@ import concurrent.futures
 import json
 import os
 import threading
+import time
 from dataclasses import dataclass
 
 import requests
 from bs4 import BeautifulSoup
 
-from api import API, Query, Story, User
-from lib.string_lib import *
+from fanfiction_apis.api import API, Query, Story, User
+from fanfiction_apis.lib.string_lib import *
 
 
 @dataclass
@@ -217,7 +218,7 @@ class FFN(API):
         with open(f"{abs_path}metadata.json", "w+", encoding="utf8") as f:
             json.dump(story, f, default=encode_story)
 
-    def get_chapter_data(self, story: FFNStory) -> None:
+    def get_chapter_data(self, story: FFNStory, delay: int = 30) -> None:
         # Downloads chapters of a story
         thread_local = threading.local()
 
@@ -227,11 +228,11 @@ class FFN(API):
             return thread_local.session
 
         def download_chapter(url_tuple):
+            time.sleep(delay)
             url, i = url_tuple
             session = get_session()
-            with session.get(url) as src:
-                src = session.get(url, headers=self.headers)
-            soup = BeautifulSoup(src.content, 'lxml')
+            with session.get(url, headers=self.headers) as src:
+                soup = BeautifulSoup(src.content, 'lxml')
             p_arr = soup.find("div", id="storytext").find_all("p")
             with open(f"{abs_path}chapter-{i}.txt", "w+", encoding="utf8") as f:
                 for p in p_arr:
