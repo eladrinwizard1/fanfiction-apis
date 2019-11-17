@@ -20,8 +20,8 @@ def test_search():
 
 def test_get_story_data():
     api = ffn.FFN("book", "Harry-Potter", PATH)
-    query = ffn.FFNQuery(sort=4, rating=10, length=11)
-    story = api.search(query, 1)[13]
+    query = ffn.FFNQuery(sort=4, rating=10)
+    story = api.search(query, 1)[23]
     api.get_story_data(story)
     print(story)
 

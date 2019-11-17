@@ -40,7 +40,9 @@ def get_genres(label: str, genres: Dict[str, str]) -> Tuple[int, int]:
 
 def get_chars(label: str, names: Dict[str, str]) \
         -> Tuple[int, int, int, int]:
-    tag_array = label.strip().split(", ")
+    tag_array = label.strip() \
+        .replace("[", "").replace("] ", ", ").replace("]", ", ") \
+        .split(", ")
     name_list = [int(names.get(tag_array[i], 0)) if len(tag_array) > i else 0
                  for i in range(4)]
     return name_list[0], name_list[1], name_list[2], name_list[3]

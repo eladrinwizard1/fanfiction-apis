@@ -197,10 +197,13 @@ class FFN(API):
         story.rating = get_int_rating(raw_text_array)
         story.language = int(self.reverse_categories["language"]
                              .get(raw_text_array[1], 0))
+
         story.genre_1, story.genre_2 = \
             get_genres(raw_text_array[2], self.reverse_categories["genre_1"])
+        char_index = 2 if story.genre_1 == 0 and story.genre_2 == 0 else 3
         story.char_1, story.char_2, story.char_3, story.char_4 = \
-            get_chars(raw_text_array[3], self.reverse_categories["char_1"])
+            get_chars(raw_text_array[char_index],
+                      self.reverse_categories["char_1"])
         story.status = 2 if "Complete" in \
                             str_from_meta(raw_text_array, "Status") else 1
         story.update_time = date_from_meta(raw_text_array, "Updated")
